@@ -16,10 +16,14 @@ You will have to create 3 plots based on the datasets and instructions detailed 
 -   Data manipulation (e.g. dplyr, tidyr), and working with factors (forcats)
 -   Data visuzlization (ggplot2)
 
-```{r setup, include=FALSE}
+```{r setup}
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(tidytuesdayR)
+library(readr)
+library(viridis)
+library(scales)
+library(RColorBrewer)
 ```
 
 ## Task 1: Climbing expeditions
@@ -31,6 +35,20 @@ The 2020-09-22 TidyTueday datasets are about climbing expeditions. From the thre
 -   The bar colors use the viridis palette and light theme.
 
 ```{r}
+expeditions <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-22/expeditions.csv') %>% 
+  mutate(peak_name = fct_lump(peak_name, n = 15)) %>%
+  filter(peak_name != "Other") %>% 
+  group_by(peak_name, season) %>%
+  summarize(count = n())
+  
+
+ggplot(expeditions, aes(x = count, y = reorder(peak_name, count), fill = season)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Expeditions by Season and Peak",
+       x = "Number of Expeditions",
+       y = "Peak Name") +
+  scale_colour_discrete(palette = viridis) +
+  theme_light()
 
 ```
 
@@ -45,7 +63,18 @@ Notes:
 -   The line size is 1.2, the colors are from the brewer "Dark2" palette. The theme is set to minimal.
 
 ```{r}
+phd_field <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-02-19/phd_by_field.csv") %>%
+  na.omit() %>% 
+  group_by(broad_field, year) %>% 
+  summarize(n = sum(n_phds))
 
+ggplot(phd_field, aes(x = year, y = n, group = broad_field, color = broad_field)) +
+  geom_line(linewidth = 1.2) +
+  scale_color_brewer(palette = "Dark2")+
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_y_continuous(labels = comma_format()) +
+  theme_minimal()
+  
 ```
 
 ## Task 3: Commute in the US
@@ -59,5 +88,16 @@ Notes:
 -   The point size is 2, . The theme is set to light.
 
 ```{r}
+commute_mode <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-11-05/commute.csv") %>% 
+  na.omit() %>% 
+  group_by(state, state_abb, state_region, mode) %>% 
+  summarize(n = sum(n)) %>% 
+  pivot_wider(names_from = mode, values_from = n)
 
+ggplot(commute_mode, aes(x = log(Walk), y = log(Bike), color = state_region)) +
+  geom_point(size = 2) +
+  geom_text(aes(label = state_abb), size = 3, nudge_x = 0.1, nudge_y = 0.1) +
+  scale_x_continuous(labels = comma_format()) +
+  scale_y_continuous(labels = comma_format()) +
+  theme_light()
 ```
